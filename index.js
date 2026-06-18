@@ -42,6 +42,8 @@ async function run() {
             res.send(result)
         })
 
+
+        // get featured classes
         app.get("/classes/featured", async (req, res) => {
             try {
                 const featuredClasses = await classCollection.find({ status: "approved" })
@@ -59,6 +61,43 @@ async function run() {
                     success: false,
                     message: "Server error",
                     error: error.message
+                });
+            }
+        });
+
+
+        app.get("/classes", async (req, res) => {
+            try {
+                const { search, category } = req.query;
+
+                let query = { status: "approved" };
+
+                // 🔍 SEARCH by name
+                if (search) {
+                    query.className = {
+                        $regex: search,
+                        $options: "i",
+                    };
+                }
+
+                // 🎯 FILTER by category
+                if (category) {
+                    query.category = category;
+                }
+
+                const result = await classCollection.find(query).toArray();
+
+                res.status(200).json({
+                    success: true,
+                    message: "Classes fetched successfully",
+                    data: result,
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: "Server error",
+                    error: error.message,
                 });
             }
         });
