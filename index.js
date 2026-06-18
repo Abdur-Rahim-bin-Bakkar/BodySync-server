@@ -34,16 +34,34 @@ async function run() {
         // database and collections:
         const database = client.db('bodyasync')
         const classCollection = database.collection('classes')
+        const forumCollection = database.collection('forum')
 
 
 
-        app.get('/class', async (req, res) => {
-            const result = await classCollection.find().toArray()
-            res.send(result)
-        })
+
+        //post class:
+        app.post("/class", async (req, res) => {
+            try {
+                const data = req.body;
+
+                const newData = {
+                    ...data,
+                    createdAt: new Date(),
+                };
+
+                const result = await classCollection.insertOne(newData);
+
+                res.status(201).send(result);
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
-        // get featured classes
+        // get featured classes:
         app.get("/classes/featured", async (req, res) => {
             try {
                 const featuredClasses = await classCollection.find({ status: "approved" })
@@ -66,6 +84,7 @@ async function run() {
         });
 
 
+        //get all approved classes:
         app.get("/classes", async (req, res) => {
             try {
                 const { search, category } = req.query;
@@ -102,6 +121,92 @@ async function run() {
             }
         });
 
+        //get class by trainerId:
+        app.get("/classes/:trainerId", async (req, res) => {
+            try {
+                const trainerId = req.params.trainerId;
+
+                const result = await classCollection
+                    .find({ trainerId })
+                    .toArray();
+
+                res.send({
+                    success: true,
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        // get forun  post: 
+        app.get("/forum-posts", async (req, res) => {
+            console.log('hocda fsafdj asofuosiauf afiud')
+            try {
+                const search = req.query.search || "";
+
+                const query = {};
+
+                if (search) {
+                    query.title = {
+                        $regex: search,
+                        $options: "i",
+                    };
+                }
+
+                const result = await forumCollection
+                    .find(query)
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    message: "Forum posts fetched successfully",
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: "Server error",
+                    error: error.message,
+                });
+            }
+        });
+
+
+        // get single forun  posts: 
+        app.get("/forum-posts/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await forumCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!result) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Forum post not found",
+                    });
+                }
+
+                res.status(200).json({
+                    success: true,
+                    message: "Forum post fetched successfully",
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: "Server error",
+                    error: error.message,
+                });
+            }
+        });
 
 
 
