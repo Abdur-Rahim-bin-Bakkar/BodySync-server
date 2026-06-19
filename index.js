@@ -41,6 +41,7 @@ async function run() {
         const replayCommentCollection = database.collection('commentreplay')
         const Reaction = database.collection('reaction')
         const favoriteCollection = database.collection("favorites");
+        const bookingCollection = database.collection('bookings')
 
 
 
@@ -531,53 +532,78 @@ async function run() {
         // forum-----------------------------------
 
 
+        const { ObjectId } = require("mongodb");
+
         app.post("/favorites/toggle", async (req, res) => {
             try {
                 const { userId, classId } = req.body;
 
+                // ⭐ 1. VALIDATION
                 if (!userId || !classId) {
                     return res.status(400).json({
                         success: false,
-                        message: "userId and classId required",
+                        message: "userId and classId are required",
                     });
                 }
 
-                const query = { userId, classId };
+                // ⭐ 2. ObjectId SAFE CHECK
+                let classObjectId;
 
+                try {
+                    classObjectId = new ObjectId(classId);
+                } catch (error) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid classId format",
+                    });
+                }
+
+                // ⭐ 3. QUERY
+                const query = {
+                    userId,
+                    classId: classObjectId,
+                };
+
+                // ⭐ 4. CHECK EXISTING FAVORITE
                 const existing = await favoriteCollection.findOne(query);
 
-                // ❌ যদি আগে থেকে থাকে → REMOVE (unfavorite)
+                // ❌ REMOVE FAVORITE
                 if (existing) {
                     await favoriteCollection.deleteOne(query);
 
-                    return res.json({
+                    return res.status(200).json({
                         success: true,
                         type: "removed",
                         message: "Removed from favorites",
                     });
                 }
 
-                // ✅ না থাকলে → ADD
-                await favoriteCollection.insertOne({
+                // ✅ ADD FAVORITE
+                const newFavorite = {
                     userId,
-                    classId,
+                    classId: classObjectId,
                     createdAt: new Date(),
-                });
+                };
 
-                res.json({
+                const result = await favoriteCollection.insertOne(newFavorite);
+
+                return res.status(201).json({
                     success: true,
                     type: "added",
                     message: "Added to favorites",
+                    insertedId: result.insertedId,
                 });
+
             } catch (error) {
-                res.status(500).json({
+                console.error("Favorites toggle error:", error);
+
+                return res.status(500).json({
                     success: false,
-                    message: error.message,
+                    message: "Internal server error",
+                    error: error.message,
                 });
             }
         });
-
-
 
         app.get("/favorites/check", async (req, res) => {
             try {
@@ -599,7 +625,127 @@ async function run() {
                 });
             }
         });
+        // app.get("/favorites/:userId", async (req, res) => {
+        //     try {
+        //         const { userId } = req.params;
 
+        //         // ⭐ 1. user এর সব favorite record বের করি
+        //         const favorites = await favoriteCollection
+        //             .find({ userId })
+        //             .toArray();
+
+        //         // ⭐ যদি empty হয়
+        //         if (!favorites.length) {
+        //             return res.json({
+        //                 success: true,
+        //                 data: [],
+        //             });
+        //         }
+
+        //         // ⭐ 2. classId list বানাই
+        //         const classIds = favorites.map(
+        //             (fav) => new ObjectId(fav.classId)
+        //         );
+
+        //         // ⭐ 3. classes collection থেকে data আনি
+        //         const classes = await classCollection
+        //             .find({
+        //                 _id: { $in: classIds },
+        //             })
+        //             .toArray();
+
+        //         res.json({
+        //             success: true,
+        //             data: classes,
+        //         });
+        //     } catch (error) {
+        //         res.status(500).json({
+        //             success: false,
+        //             message: error.message,
+        //         });
+        //     }
+        // });
+        app.get("/favorites/:userId", async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                const favorites = await favoriteCollection.find({ userId }).toArray();
+
+                res.json({
+                    success: true,
+                    data: favorites, // ⭐ IMPORTANT (NO JOIN)
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+
+        // const { ObjectId } = require("mongodb");
+
+        // const { ObjectId } = require("mongodb");
+
+        app.delete("/favorites/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!id) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Favorite id is required",
+                    });
+                }
+
+
+
+
+                const result = await favoriteCollection.deleteOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Favorite not found",
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    message: "Favorite removed successfully",
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        // post bookings data:
+        app.post("/bookings", async (req, res) => {
+            try {
+                const bookingData = req.body;
+
+                const result = await bookingCollection.insertOne({
+                    ...bookingData,
+                    createdAt: new Date(),
+                });
+
+                res.status(201).send({
+                    success: true,
+                    message: "Booking created successfully",
+                    insertedId: result.insertedId,
+                });
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
 
