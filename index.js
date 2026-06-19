@@ -39,6 +39,7 @@ async function run() {
         const forumCollection = database.collection('forum')
         const commentCollection = database.collection('comments')
         const replayCommentCollection = database.collection('commentreplay')
+        const Reaction = database.collection('reaction')
 
 
 
@@ -149,6 +150,30 @@ async function run() {
 
 
         // forum-----------------------------------
+
+        //get latest forum post:
+        // GET Latest Forum Posts
+        app.get("/forum/latest", async (req, res) => {
+            try {
+                const limit = parseInt(req.query.limit) || 4;
+
+                const latestPosts = await forumCollection
+                    .find({})
+                    .sort({ createdAt: -1 }) // newest first
+                    .limit(limit)
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    data: latestPosts,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to fetch latest forum posts",
+                });
+            }
+        });
         // get forum  post: 
         app.get("/forum-posts", async (req, res) => {
             console.log('hocda fsafdj asofuosiauf afiud')
@@ -274,7 +299,7 @@ async function run() {
             }
         });
 
-        // comment on forum post: 
+        // comment on forum post: --------------
         // add comment
         app.post("/forum/:id/comment", async (req, res) => {
             try {
@@ -398,6 +423,81 @@ async function run() {
                     message: error.message,
                 });
             }
+        });
+
+
+        // //like or dislike in post: 
+        // app.post("/post/reaction", async (req, res) => {
+        //     const { userId, postId, type } = req.body;
+
+        //     // check existing reaction
+        //     const existing = await Reaction.findOne({ userId, postId });
+
+        //     if (!existing) {
+        //         // no reaction yet → create new
+        //         await Reaction.create({ userId, postId, type });
+        //         return res.json({ message: "Reaction added" });
+        //     }
+
+        //     if (existing.type === type) {
+        //         // same button click → remove reaction (toggle off)
+        //         await Reaction.deleteOne({ _id: existing._id });
+        //         return res.json({ message: "Reaction removed" });
+        //     }
+
+        //     // opposite reaction → update
+        //     existing.type = type;
+        //     await existing.save();
+
+        //     res.json({ message: "Reaction updated" });
+        // });
+        app.post("/post/reaction", async (req, res) => {
+            const { userId, postId, type } = req.body;
+
+            const forumCollection = database.collection("forum");
+
+            const post = await forumCollection.findOne({
+                _id: new ObjectId(postId),
+            });
+
+            if (!post) {
+                return res.status(404).json({ message: "Post not found" });
+            }
+
+            const uid = userId.toString();
+
+            let likes = (post.likesUsers || []).map((id) => id.toString());
+            let dislikes = (post.dislikesUsers || []).map((id) => id.toString());
+
+            // remove user from both
+            likes = likes.filter((id) => id !== uid);
+            dislikes = dislikes.filter((id) => id !== uid);
+
+            if (type === "like") {
+                likes.push(uid);
+            }
+
+            if (type === "dislike") {
+                dislikes.push(uid);
+            }
+
+            await forumCollection.updateOne(
+                { _id: new ObjectId(postId) },
+                {
+                    $set: {
+                        likesUsers: likes,
+                        dislikesUsers: dislikes,
+                        likes: likes.length,
+                        dislikes: dislikes.length,
+                    },
+                }
+            );
+
+            res.json({
+                message: "Reaction updated",
+                likes: likes.length,
+                dislikes: dislikes.length,
+            });
         });
         // forum-----------------------------------
 
