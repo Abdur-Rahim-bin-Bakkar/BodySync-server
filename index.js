@@ -532,7 +532,7 @@ async function run() {
         // forum-----------------------------------
 
 
-        const { ObjectId } = require("mongodb");
+        // const { ObjectId } = require("mon/godb");
 
         app.post("/favorites/toggle", async (req, res) => {
             try {
@@ -605,21 +605,31 @@ async function run() {
             }
         });
 
+        // const { ObjectId } = require("mongodb");
+
         app.get("/favorites/check", async (req, res) => {
             try {
                 const { userId, classId } = req.query;
 
+                if (!userId || !classId) {
+                    return res.json({
+                        success: true,
+                        isFavorite: false,
+                    });
+                }
+
                 const exists = await favoriteCollection.findOne({
-                    userId,
-                    classId,
+                    userId: userId,
+                    classId: new ObjectId(classId), // ⭐ FIX HERE
                 });
 
-                res.json({
+                return res.json({
                     success: true,
-                    isFavorite: !!exists,
+                    isFavorite: !!exists, // ⭐ MUST BE BOOLEAN
                 });
+
             } catch (error) {
-                res.status(500).json({
+                return res.status(500).json({
                     success: false,
                     message: error.message,
                 });
@@ -741,6 +751,33 @@ async function run() {
                 });
             } catch (error) {
                 res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        app.get('/bookings/user/:userId/class/:classId', async (req, res) => {
+            try {
+                const { userId, classId } = req.params;
+
+                // const bookingCollection = database.collection('bookings');
+
+                const booking = await bookingCollection.findOne({
+                    userId,
+                    classId,
+                });
+
+                // ✅ IMPORTANT CHANGE HERE
+                return res.json({
+                    success: true,
+                    data: booking || null,
+                });
+                console.log('hit hocche')
+
+            } catch (error) {
+                res.status(500).json({
                     success: false,
                     message: error.message,
                 });
