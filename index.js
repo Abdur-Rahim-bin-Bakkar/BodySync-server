@@ -37,6 +37,7 @@ async function run() {
         const database = client.db('bodyasync')
         const classCollection = database.collection('classes')
         const forumCollection = database.collection('forum')
+        const commentCollection = database.collection('comments')
 
 
 
@@ -145,7 +146,9 @@ async function run() {
         });
 
 
-        // get forun  post: 
+
+        // forum-----------------------------------
+        // get forum  post: 
         app.get("/forum-posts", async (req, res) => {
             console.log('hocda fsafdj asofuosiauf afiud')
             try {
@@ -179,8 +182,7 @@ async function run() {
             }
         });
 
-
-        // get single forun  posts: 
+        // get single forum  posts: 
         app.get("/forum-posts/:id", async (req, res) => {
             try {
                 const { id } = req.params;
@@ -235,7 +237,6 @@ async function run() {
             }
         });
 
-
         //get forum by id:
         app.get("/forum/trainer/:trainerId", async (req, res) => {
             try {
@@ -255,14 +256,7 @@ async function run() {
             }
         });
 
-
-
-
-
-
-
-        // import { ObjectId } from "mongodb";
-
+        // delete forum:
         app.delete("/forum/:id", async (req, res) => {
             try {
                 const id = req.params.id;
@@ -279,6 +273,72 @@ async function run() {
             }
         });
 
+        // comment on forum post: 
+        // add comment
+        app.post("/forum/:id/comment", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { text, userName, userEmail } = req.body;
+
+                if (!text) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Comment text is required",
+                    });
+                }
+
+                const newComment = {
+                    postId: id,
+                    text,
+                    // userName: userName || "Anonymous",
+                    // userEmail: userEmail || "",
+                    createdAt: new Date(),
+                };
+
+                const result = await commentCollection.insertOne(newComment);
+
+                // optional: update comment count in forum
+                await forumCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $inc: { commentsCount: 1 } }
+                );
+
+                res.status(201).json({
+                    success: true,
+                    message: "Comment added successfully",
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        //get comment:
+        app.get("/forum/:id/comments", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const comments = await commentCollection
+                    .find({ postId: id })
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    data: comments,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+        // forum-----------------------------------
 
 
 
