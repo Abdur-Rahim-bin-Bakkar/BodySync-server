@@ -40,6 +40,7 @@ async function run() {
         const commentCollection = database.collection('comments')
         const replayCommentCollection = database.collection('commentreplay')
         const Reaction = database.collection('reaction')
+        const favoriteCollection = database.collection("favorites");
 
 
 
@@ -87,7 +88,6 @@ async function run() {
                 });
             }
         });
-
 
         //get all approved classes:
         app.get("/classes", async (req, res) => {
@@ -141,6 +141,35 @@ async function run() {
                 });
             } catch (error) {
                 res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        //get class details
+        app.get("/classes/:id/details", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await classCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!result) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Class not found",
+                    });
+                }
+
+                res.status(200).json({
+                    success: true,
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).json({
                     success: false,
                     message: error.message,
                 });
@@ -501,6 +530,75 @@ async function run() {
         });
         // forum-----------------------------------
 
+
+        app.post("/favorites/toggle", async (req, res) => {
+            try {
+                const { userId, classId } = req.body;
+
+                if (!userId || !classId) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "userId and classId required",
+                    });
+                }
+
+                const query = { userId, classId };
+
+                const existing = await favoriteCollection.findOne(query);
+
+                // ❌ যদি আগে থেকে থাকে → REMOVE (unfavorite)
+                if (existing) {
+                    await favoriteCollection.deleteOne(query);
+
+                    return res.json({
+                        success: true,
+                        type: "removed",
+                        message: "Removed from favorites",
+                    });
+                }
+
+                // ✅ না থাকলে → ADD
+                await favoriteCollection.insertOne({
+                    userId,
+                    classId,
+                    createdAt: new Date(),
+                });
+
+                res.json({
+                    success: true,
+                    type: "added",
+                    message: "Added to favorites",
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+
+        app.get("/favorites/check", async (req, res) => {
+            try {
+                const { userId, classId } = req.query;
+
+                const exists = await favoriteCollection.findOne({
+                    userId,
+                    classId,
+                });
+
+                res.json({
+                    success: true,
+                    isFavorite: !!exists,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
 
