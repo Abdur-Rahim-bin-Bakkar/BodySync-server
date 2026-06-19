@@ -1,5 +1,6 @@
+// import { ObjectId } from "mongodb";
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const dns = require("dns").promises;
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
@@ -13,6 +14,7 @@ app.get('/', (req, res) => {
 })
 app.use(cors())
 app.use(express.json())
+
 
 
 const uri = process.env.MONGODB_URI
@@ -208,9 +210,74 @@ async function run() {
             }
         });
 
+        // post fourm:
+        app.post("/forum", async (req, res) => {
+            try {
+                const data = req.body;
+
+                const newData = {
+                    ...data,
+                    createdAt: new Date(),
+                };
+
+                const result = await forumCollection.insertOne(newData);
+
+                res.status(201).send({
+                    success: true,
+                    insertedId: result.insertedId,
+                    message: "Forum post created successfully",
+                });
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        //get forum by id:
+        app.get("/forum/trainer/:trainerId", async (req, res) => {
+            try {
+                const { trainerId } = req.params;
+
+                const result = await forumCollection
+                    .find({ trainerId })
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).send(result);
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
 
+
+
+
+
+        // import { ObjectId } from "mongodb";
+
+        app.delete("/forum/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+
+                const result = await forumCollection.deleteOne({
+                    _id: new ObjectId(id),
+                });
+
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({
+                    message: error.message,
+                });
+            }
+        });
 
 
 
