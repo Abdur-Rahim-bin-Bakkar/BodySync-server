@@ -38,6 +38,7 @@ async function run() {
         const classCollection = database.collection('classes')
         const forumCollection = database.collection('forum')
         const commentCollection = database.collection('comments')
+        const replayCommentCollection = database.collection('commentreplay')
 
 
 
@@ -278,7 +279,7 @@ async function run() {
         app.post("/forum/:id/comment", async (req, res) => {
             try {
                 const { id } = req.params;
-                const { text, userName, userEmail } = req.body;
+                const { text, userName, userEmail, user } = req.body;
 
                 if (!text) {
                     return res.status(400).json({
@@ -293,6 +294,7 @@ async function run() {
                     // userName: userName || "Anonymous",
                     // userEmail: userEmail || "",
                     createdAt: new Date(),
+                    user
                 };
 
                 const result = await commentCollection.insertOne(newComment);
@@ -316,7 +318,6 @@ async function run() {
             }
         });
 
-
         //get comment:
         app.get("/forum/:id/comments", async (req, res) => {
             try {
@@ -331,6 +332,66 @@ async function run() {
                     success: true,
                     data: comments,
                 });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+
+        //post comment replay:
+        app.post("/comment/:commentId/reply", async (req, res) => {
+            try {
+                const { commentId } = req.params;
+                const { text, user } = req.body;
+
+                if (!text) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Reply text is required",
+                    });
+                }
+
+                const newReply = {
+                    commentId, // মূল comment id
+                    text,
+                    user, // {name, image, role, email}
+                    createdAt: new Date(),
+                };
+
+                const result = await replayCommentCollection.insertOne(newReply);
+
+                res.status(201).json({
+                    success: true,
+                    message: "Reply added successfully",
+                    data: result,
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+        //get comment replay:
+        app.get("/comment/:commentId/replies", async (req, res) => {
+            try {
+                const { commentId } = req.params;
+
+                const replies = await replayCommentCollection
+                    .find({ commentId })
+                    .sort({ createdAt: 1 })
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    data: replies,
+                });
+
             } catch (error) {
                 res.status(500).json({
                     success: false,
