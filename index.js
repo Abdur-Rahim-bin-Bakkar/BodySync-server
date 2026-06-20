@@ -128,13 +128,13 @@ async function run() {
             }
         });
 
-        //get class by trainerId:
-        app.get("/classes/:trainerId", async (req, res) => {
+        //get class by userId:
+        app.get("/classes/:userId", async (req, res) => {
             try {
-                const trainerId = req.params.trainerId;
+                const userId = req.params.userId;
 
                 const result = await classCollection
-                    .find({ trainerId })
+                    .find({ userId })
                     .toArray();
 
                 res.send({
@@ -203,6 +203,96 @@ async function run() {
             }
         });
 
+
+        //update class:
+        app.patch("/classes/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const updateData = req.body;
+
+                const result = await classCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updateData }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Class updated successfully",
+                    data: result,
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        //delete class: 
+        app.delete("/classes/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await classCollection.deleteOne({
+                    _id: new ObjectId(id),
+                });
+
+                res.json({
+                    success: true,
+                    message: "Class deleted successfully",
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+
+
+        //booked users: 
+        // const { ObjectId } = require("mongodb");
+
+        app.get("/classes/:id/students", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const students = await bookingCollection.aggregate([
+                    {
+                        $match: {
+                            classId: id // or new ObjectId(id) if stored as ObjectId
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "user",
+                            localField: "userId",
+                            foreignField: "userId", // or "_id" depending on your user schema
+                            as: "userInfo"
+                        }
+                    },
+                    {
+                        $unwind: "$userInfo"
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            classId: 1,
+                            userId: 1,
+                            createdAt: 1,
+                            "userInfo.name": 1,
+                            "userInfo.email": 1,
+                            "userInfo.image": 1
+                        }
+                    }
+                ]).toArray();
+
+                return res.json({
+                    success: true,
+                    count: students.length,
+                    data: students
+                });
+
+            } catch (error) {
+                return res.status(500).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+        });
 
 
         // forum-----------------------------------
@@ -320,12 +410,12 @@ async function run() {
         });
 
         //get forum by id:
-        app.get("/forum/trainer/:trainerId", async (req, res) => {
+        app.get("/forum/userId/:userId", async (req, res) => {
             try {
-                const { trainerId } = req.params;
+                const { userId } = req.params;
 
                 const result = await forumCollection
-                    .find({ trainerId })
+                    .find({ userId })
                     .sort({ createdAt: -1 })
                     .toArray();
 
@@ -843,6 +933,8 @@ async function run() {
                 });
             }
         });
+
+        //counts--------------------------------
         //count booking 
         app.get("/users/:userId/stats", async (req, res) => {
             try {
@@ -878,6 +970,115 @@ async function run() {
                     success: false,
                     message: error.message,
                 });
+            }
+        });
+        //count class and forum: 
+        // app.get("/users/:userId/content-stats", async (req, res) => {
+        //     try {
+        //         const { userId } = req.params;
+
+        //         if (!userId) {
+        //             return res.status(400).json({
+        //                 success: false,
+        //                 message: "userId is required",
+        //             });
+        //         }
+
+        //         // user created classes count
+        //         const classCount = await classCollection.countDocuments({
+        //             userId: userId,
+        //         });
+
+        //         // user forum posts count
+        //         const forumCount = await forumCollection.countDocuments({
+        //             userId: userId,
+        //         });
+
+        //         return res.status(200).json({
+        //             success: true,
+        //             data: {
+        //                 classCount,
+        //                 forumCount,
+        //             },
+        //         });
+
+        //     } catch (error) {
+        //         return res.status(500).json({
+        //             success: false,
+        //             message: error.message,
+        //         });
+        //     }
+        // });
+
+        // app.get("/users/:userId/total-students", async (req, res) => {
+        //     try {
+        //         const { userId } = req.params;
+
+        //         if (!userId) {
+        //             return res.status(400).json({
+        //                 success: false,
+        //                 message: "userId is required",
+        //             });
+        //         }
+
+        //         // 1. get all classes of this trainer
+        //         const classes = await classCollection
+        //             .find({ userId: userId })
+        //             .project({ _id: 1 })
+        //             .toArray();
+
+        //         const classIds = classes.map(c => c._id.toString());
+
+        //         if (classIds.length === 0) {
+        //             return res.json({
+        //                 success: true,
+        //                 totalStudents: 0,
+        //             });
+        //         }
+
+        //         // 2. count all bookings for those classes
+        //         const totalStudents = await bookingCollection.countDocuments({
+        //             classId: { $in: classIds }
+        //         });
+
+        //         return res.json({
+        //             success: true,
+        //             totalStudents,
+        //         });
+
+        //     } catch (error) {
+        //         return res.status(500).json({
+        //             success: false,
+        //             message: error.message,
+        //         });
+        //     }
+        // });
+        app.get("/users/:userId/total-stats", async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                const classes = await classCollection.find({ userId }).toArray();
+                const classIds = classes.map(c => c._id.toString());
+
+                const totalBookings = await bookingCollection.countDocuments({
+                    classId: { $in: classIds }
+                });
+
+                const totalClasses = classes.length;
+
+                const forumCount = await forumCollection.countDocuments({ userId });
+
+                return res.json({
+                    success: true,
+                    data: {
+                        totalClasses,
+                        totalBookings,
+                        forumCount,
+                    }
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
             }
         });
 
