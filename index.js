@@ -42,6 +42,7 @@ async function run() {
         const Reaction = database.collection('reaction')
         const favoriteCollection = database.collection("favorites");
         const bookingCollection = database.collection('bookings')
+        const userCollection = database.collection('user')
 
 
 
@@ -169,6 +170,31 @@ async function run() {
                     success: true,
                     data: result,
                 });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+        app.patch("/classes/:id/increment-booking", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await classCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $inc: { bookingCount: 1 }
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Booking count updated",
+                    data: result
+                });
+
             } catch (error) {
                 res.status(500).json({
                     success: false,
@@ -778,6 +804,77 @@ async function run() {
 
             } catch (error) {
                 res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+        app.get('/bookings/user/:userId', async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                // ❗ validation (important)
+                if (!userId) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "userId is required",
+                    });
+                }
+
+                // ❗ convert to string safe side (your DB uses string)
+                const query = { userId: userId.toString() };
+
+                const bookings = await bookingCollection
+                    .find(query)
+                    .toArray();
+
+                return res.status(200).json({
+                    success: true,
+                    totalBookings: bookings.length,
+                    data: bookings,
+                });
+
+            } catch (error) {
+                console.error("GET bookings error:", error);
+
+                return res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+        //count booking 
+        app.get("/users/:userId/stats", async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                if (!userId) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "userId is required",
+                    });
+                }
+
+                // bookings count
+                const bookingCount = await bookingCollection.countDocuments({
+                    userId: userId.toString(),
+                });
+
+                // favorites count
+                const favoriteCount = await favoriteCollection.countDocuments({
+                    userId: userId.toString(),
+                });
+
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        bookingCount,
+                        favoriteCount,
+                    },
+                });
+
+            } catch (error) {
+                return res.status(500).json({
                     success: false,
                     message: error.message,
                 });
