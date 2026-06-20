@@ -14,6 +14,40 @@ app.get('/', (req, res) => {
 })
 app.use(cors())
 app.use(express.json())
+const checkBlockedUser = async (req, res, next) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "userId required",
+            });
+        }
+
+        const user = await userCollection.findOne({
+            _id: new ObjectId(userId),
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        if (user.status === "blocked") {
+            return res.status(403).json({
+                success: false,
+                message: "Action restricted by Admin",
+            });
+        }
+
+        next();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 
 
@@ -1124,7 +1158,7 @@ async function run() {
         });
 
 
-
+        //apply trainer:
         app.post("/apply-trainer", async (req, res) => {
             try {
                 const data = req.body;
@@ -1202,6 +1236,193 @@ async function run() {
                     success: false,
                     message: error.message,
                 });
+            }
+        });
+        //get trainers:
+        app.get("/apply-trainer", async (req, res) => {
+            try {
+                const applications = await applyAsTrainerCollection
+                    .find({})
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.json({
+                    success: true,
+                    data: applications,
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        app.patch("/apply-trainer/:id/approve", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                // 1. get application
+                const application = await applyAsTrainerCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!application) {
+                    return res.status(404).json({
+                        message: "Application not found",
+                    });
+                }
+
+                // 2. update application
+                await applyAsTrainerCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $set: {
+                            status: "Approved",
+                            feedback: req.body.feedback || "",
+                        },
+                    }
+                );
+
+                // 3. update user role
+                await userCollection.updateOne(
+                    { _id: new ObjectId(application.userId) },
+                    {
+                        $set: { role: "trainer" },
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Trainer approved",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        
+
+        app.patch("/apply-trainer/:id/reject", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                // 1. get application
+                const application = await applyAsTrainerCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!application) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Application not found",
+                    });
+                }
+
+                // 2. update application status
+                await applyAsTrainerCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $set: {
+                            status: "Rejected",
+                            feedback: req.body.feedback || "",
+                        },
+                    }
+                );
+
+                // 3. 🔥 REVERT ROLE → user
+                await userCollection.updateOne(
+                    { _id: new ObjectId(application.userId) },
+                    {
+                        $set: { role: "user" },
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Application rejected & role reset to user",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+
+        //users---------------------
+        // app.get("/users", async (req, res) => {
+        //     try {
+        //         const users = await userCollection.find({}).toArray();
+
+        //         res.json({
+        //             success: true,
+        //             data: users,
+        //         });
+
+        //     } catch (error) {
+        //         res.status(500).json({ message: error.message });
+        //     }
+        // });
+        app.get("/users", async (req, res) => {
+            try {
+                const { search } = req.query;
+
+                let query = {};
+
+                // 🔍 EMAIL SEARCH (case insensitive)
+                if (search) {
+                    query.email = {
+                        $regex: search,
+                        $options: "i",
+                    };
+                }
+
+                const users = await userCollection
+                    .find(query)
+                    .toArray();
+
+                res.json({
+                    success: true,
+                    data: users,
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        //block and unblock
+        app.patch("/users/:id/status", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { status } = req.body;
+
+                const result = await userCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status } }
+                );
+
+                res.json({
+                    success: true,
+                    message: `User ${status} successfully`,
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        //make admin:
+        app.patch("/users/:id/make-admin", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                await userCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { role: "admin" } }
+                );
+
+                res.json({
+                    success: true,
+                    message: "User promoted to admin",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
             }
         });
 
