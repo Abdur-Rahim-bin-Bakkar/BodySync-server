@@ -1298,7 +1298,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        
+
 
         app.patch("/apply-trainer/:id/reject", async (req, res) => {
             try {
@@ -1426,6 +1426,28 @@ async function run() {
             }
         });
 
+
+
+        app.get("/transactions", async (req, res) => {
+            try {
+                const transactions = await bookingCollection
+                    .find({
+                        transactionId: { $exists: true }
+                    })
+                    .sort({ paymentDate: -1 })
+                    .toArray();
+
+                res.json({
+                    success: true,
+                    data: transactions,
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
 
