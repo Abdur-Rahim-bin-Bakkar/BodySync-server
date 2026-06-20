@@ -1082,6 +1082,46 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
+        app.get("/admin/overview-stats", async (req, res) => {
+            try {
+                // 1. Total Users
+                const totalUsers = await userCollection.countDocuments({});
+
+                // 2. Total Classes
+                const totalClasses = await classCollection.countDocuments({});
+
+                // 3. Total Bookings
+                const totalBookedClasses = await bookingCollection.countDocuments({});
+
+                // 4. Total Forum Posts
+                const totalForumPosts = await forumCollection.countDocuments({});
+
+                // 5. Total Comments
+                const totalComments = await commentCollection.countDocuments({});
+
+                // 6. Total Apply as Trainer
+                const totalTrainerApplications =
+                    await applyAsTrainerCollection.countDocuments({});
+
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        totalUsers,
+                        totalClasses,
+                        totalBookedClasses,
+                        totalForumPosts,
+                        totalComments,
+                        totalTrainerApplications,
+                    },
+                });
+
+            } catch (error) {
+                return res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
 
 
 
