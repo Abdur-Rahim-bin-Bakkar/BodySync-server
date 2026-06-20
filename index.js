@@ -102,6 +102,78 @@ async function run() {
                 });
             }
         });
+        app.get("/admin/classes", async (req, res) => {
+            try {
+                const classes = await classCollection
+                    .find({})
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.json({
+                    success: true,
+                    data: classes,
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+        app.patch("/classes/:id/approve", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await classCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: "approved" } }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Class approved successfully",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        app.patch("/classes/:id/reject", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await classCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: "rejected" } }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Class rejected",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
+        app.delete("/classes/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                await classCollection.deleteOne({
+                    _id: new ObjectId(id),
+                });
+
+                res.json({
+                    success: true,
+                    message: "Class deleted successfully",
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
 
 
         // get featured classes:
