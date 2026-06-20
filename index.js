@@ -42,7 +42,8 @@ async function run() {
         const Reaction = database.collection('reaction')
         const favoriteCollection = database.collection("favorites");
         const bookingCollection = database.collection('bookings')
-        const userCollection = database.collection('user')
+        const userCollection = database.collection('user');
+        const applyAsTrainerCollection = database.collection('applyastrainer')
 
 
 
@@ -1079,6 +1080,88 @@ async function run() {
 
             } catch (error) {
                 res.status(500).json({ message: error.message });
+            }
+        });
+
+
+
+        app.post("/apply-trainer", async (req, res) => {
+            try {
+                const data = req.body;
+
+                const {
+                    userId,
+                    experience,
+                    specialty,
+                    description,
+                } = data;
+
+                // validation
+                if (!userId || !experience || !specialty || !description) {
+                    return res.status(400).send({
+                        success: false,
+                        message: "All fields are required",
+                    });
+                }
+
+                const applyAsTrainerCollection =
+                    database.collection("applyastrainer");
+
+                // duplicate check (same user 2nd time apply block)
+                const existing = await applyAsTrainerCollection.findOne({
+                    userId,
+                });
+
+                if (existing) {
+                    return res.status(409).send({
+                        success: false,
+                        message: "You already applied as trainer",
+                    });
+                }
+
+                const newData = {
+                    ...data,
+                    status: "Pending",
+                    createdAt: new Date(),
+                };
+
+                const result = await applyAsTrainerCollection.insertOne(newData);
+
+                res.status(201).send({
+                    success: true,
+                    message: "Application submitted successfully",
+                    data: result,
+                });
+
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+        app.get("/apply-trainer/:userId", async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                const applyAsTrainerCollection =
+                    database.collection("applyastrainer");
+
+                const result = await applyAsTrainerCollection.findOne({
+                    userId,
+                });
+
+                return res.status(200).send({
+                    success: true,
+                    data: result,
+                });
+
+            } catch (error) {
+                res.status(500).send({
+                    success: false,
+                    message: error.message,
+                });
             }
         });
 
