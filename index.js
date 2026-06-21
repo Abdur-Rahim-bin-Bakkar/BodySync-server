@@ -677,6 +677,53 @@ async function run() {
                 });
             }
         });
+        app.delete("/comments/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { userId } = req.body;
+
+                const comment = await commentCollection.findOne({ _id: new ObjectId(id) });
+
+                if (!comment) {
+                    return res.status(404).send({ message: "Comment not found" });
+                }
+
+                if (comment.user.id !== userId) {
+                    return res.status(403).send({ message: "Not allowed" });
+                }
+
+                await commentCollection.deleteOne({ _id: new ObjectId(id) });
+
+                res.send({ success: true, message: "Comment deleted" });
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
+        app.patch("/comments/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { text, userId } = req.body;
+
+                const comment = await commentCollection.findOne({ _id: new ObjectId(id) });
+
+                if (!comment) {
+                    return res.status(404).send({ message: "Comment not found" });
+                }
+
+                if (comment.user.id !== userId) {
+                    return res.status(403).send({ message: "Not allowed" });
+                }
+
+                const result = await commentCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { text } }
+                );
+
+                res.send({ success: true, result });
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        });
 
 
         // //like or dislike in post: 
@@ -1521,6 +1568,88 @@ async function run() {
             }
         });
 
+
+        app.get("/trainers", async (req, res) => {
+            try {
+                const trainers = await userCollection
+                    .find({ role: "trainer" })
+                    .toArray();
+
+                res.json({
+                    success: true,
+                    data: trainers,
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+        app.patch("/users/:id/remove-trainer", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                await userCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    {
+                        $set: {
+                            role: "user",
+                        },
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    message: "Trainer role removed successfully",
+                });
+
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+        });
+
+        const { ObjectId } = require("mongodb");
+
+        app.get("/users/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).send({
+                        success: false,
+                        message: "Invalid user id",
+                    });
+                }
+
+                const user = await userCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!user) {
+                    return res.status(404).send({
+                        success: false,
+                        message: "User not found",
+                    });
+                }
+
+                return res.send({
+                    success: true,
+                    data: user,
+                });
+            } catch (error) {
+                return res.status(500).send({
+                    success: false,
+                    message: "Server error",
+                    error: error.message,
+                });
+            }
+        });
 
 
 
