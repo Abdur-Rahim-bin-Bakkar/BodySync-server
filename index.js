@@ -199,7 +199,7 @@ async function run() {
                 });
             }
         });
-        app.patch("/classes/:id/approve",verifyToken,verifyAdmin, async (req, res) => {
+        app.patch("/classes/:id/approve", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -217,7 +217,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.patch("/classes/:id/reject",verifyToken,verifyAdmin, async (req, res) => {
+        app.patch("/classes/:id/reject", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1483,7 +1483,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.get("/admin/overview-stats",verifyToken,verifyAdmin, async (req, res) => {
+        app.get("/admin/overview-stats", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 // 1. Total Users
                 const totalUsers = await userCollection.countDocuments({});
@@ -1606,7 +1606,7 @@ async function run() {
             }
         });
         //get trainers:
-        app.get("/apply-trainer", async (req, res) => {
+        app.get("/apply-trainer", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const applications = await applyAsTrainerCollection
                     .find({})
@@ -1622,7 +1622,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.patch("/apply-trainer/:id/approve", async (req, res) => {
+        app.patch("/apply-trainer/:id/approve", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1667,7 +1667,7 @@ async function run() {
         });
 
 
-        app.patch("/apply-trainer/:id/reject", async (req, res) => {
+        app.patch("/apply-trainer/:id/reject", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1726,7 +1726,7 @@ async function run() {
         //         res.status(500).json({ message: error.message });
         //     }
         // });
-        app.get("/users",verifyToken,verifyAdmin, async (req, res) => {
+        app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { search } = req.query;
 
@@ -1754,7 +1754,7 @@ async function run() {
             }
         });
         //block and unblock
-        app.patch("/users/:id/status",verifyToken, verifyAdmin, async (req, res) => {
+        app.patch("/users/:id/status", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
                 const { status } = req.body;
@@ -1774,7 +1774,7 @@ async function run() {
             }
         });
         //make admin:
-        app.patch("/users/:id/make-admin",verifyToken,verifyAdmin, async (req, res) => {
+        app.patch("/users/:id/make-admin", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1795,7 +1795,7 @@ async function run() {
 
 
 
-        app.get("/transactions",verifyToken,verifyAdmin, async (req, res) => {
+        app.get("/transactions", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const transactions = await bookingCollection
                     .find({
@@ -1817,7 +1817,7 @@ async function run() {
         });
 
 
-        app.get("/trainers",verifyToken,verifyAdmin, async (req, res) => {
+        app.get("/trainers", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const trainers = await userCollection
                     .find({ role: "trainer" })
@@ -1836,7 +1836,7 @@ async function run() {
             }
         });
 
-        app.patch("/users/:id/remove-trainer",verifyToken,verifyAdmin, async (req, res) => {
+        app.patch("/users/:id/remove-trainer", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
