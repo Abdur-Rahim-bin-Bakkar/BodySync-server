@@ -573,7 +573,7 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/classes/:id/students", async (req, res) => {
+        app.get("/classes/:id/students",verifyToken,verifyTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
 
