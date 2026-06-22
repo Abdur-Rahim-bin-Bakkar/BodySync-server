@@ -444,7 +444,7 @@ async function run() {
 
 
         //update class:
-        app.patch("/classes/:id", async (req, res) => {
+        app.patch("/classes/:id",verifyToken,verifyTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
                 const updateData = req.body;
