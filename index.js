@@ -100,16 +100,27 @@ async function run() {
                     }
                 )
             }
-            console.log(token)
-            const query = {token:token}
+            const query = { token: token }
             const session = await sessionCollection.findOne(query)
-            console.log(session,'yes session')
+            if (!session) {
+                J
+                return res.status(401).send(
+                    {
+                        message: 'unauthorized access'
+                    }
+                )
+            }
             const userId = session.userId
-            console.log(userId,'userid')
-            const userQuery = await userCollection.findOne({_id: new ObjectId(userId)})
-            console.log(userQuery,' uq')
-            const userRole = userQuery.role;
-            console.log(userRole, 'url')
+            const userQuery = await userCollection.findOne({ _id: new ObjectId(userId) })
+            if (!userQuery) {
+                return res.status(401).send(
+                    {
+                        message: 'unauthorized access'
+                    }
+                )
+            }
+            console.log(userQuery._id.toString(),'uq')
+            req.userInfo = userQuery;
             next()
         }
 
@@ -650,7 +661,7 @@ async function run() {
         });
 
         // get single forum  posts: 
-        app.get("/forum-posts/:id",verifyToken, async (req, res) => {
+        app.get("/forum-posts/:id", verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1395,9 +1406,16 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/users/:userId/total-stats", async (req, res) => {
+        app.get("/users/:userId/total-stats",verifyToken, async (req, res) => {
             try {
                 const { userId } = req.params;
+                if(userId !== req.userInfo._id.toString()){
+                    console.log('milenai ')
+                     return res.status(401).send({message:'unauthorized access'})
+                }
+                if(userId === req.userInfo._id.toString()){
+                    console.log('milche')
+                }
 
                 const classes = await classCollection.find({ userId }).toArray();
                 const classIds = classes.map(c => c._id.toString());
