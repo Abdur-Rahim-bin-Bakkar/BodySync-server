@@ -1526,7 +1526,7 @@ async function run() {
 
 
         //apply trainer:
-        app.post("/apply-trainer", async (req, res) => {
+        app.post("/apply-trainer",verifyToken, async (req, res) => {
             try {
                 const data = req.body;
 
@@ -1582,7 +1582,7 @@ async function run() {
             }
         });
 
-        app.get("/apply-trainer/:userId", async (req, res) => {
+        app.get("/apply-trainer/:userId",verifyToken, async (req, res) => {
             try {
                 const { userId } = req.params;
 
@@ -1862,9 +1862,9 @@ async function run() {
             }
         });
 
-        const { ObjectId } = require("mongodb");
+        // const { ObjectId } = require("mongodb");
 
-        app.get("/users/:id", async (req, res) => {
+        app.get("/users/:id",verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
