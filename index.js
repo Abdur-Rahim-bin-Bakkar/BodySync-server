@@ -148,7 +148,7 @@ async function run() {
                 return next()
             }
             if (role === 'trainer') {
-               return next()
+                return next()
             }
 
             return res.status(403).send({ message: "Forbidden Access" })
@@ -361,10 +361,13 @@ async function run() {
         });
 
         //get class by userId:
-        app.get("/classes/:userId", async (req, res) => {
+        app.get("/classes/:userId", verifyToken, async (req, res) => {
             try {
                 const userId = req.params.userId;
-
+                const userInfo = req.userInfo;
+                if (userId !== userInfo?._id.toString()) {
+                    return res.status(403).send({ message: "Forbidden Access" })
+                }
                 const result = await classCollection
                     .find({ userId })
                     .toArray();
