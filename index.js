@@ -119,14 +119,23 @@ async function run() {
                     }
                 )
             }
-            console.log(userQuery._id.toString(),'uq')
+            console.log(userQuery._id.toString(), 'uq')
             req.userInfo = userQuery;
+            next()
+        }
+        const verifyTrainer = async (req, res, next) => {
+            const userInfo = req?.userInfo;
+            const role = userInfo?.role;
+            if (role !== 'trainer') {
+                return res.status(403).send({ message: "Forbidden Access" })
+            }
+            console.log(userInfo, 'uc trainer check')
             next()
         }
 
 
         //post class:
-        app.post("/class", verifyToken, async (req, res) => {
+        app.post("/class", verifyToken, verifyTrainer, async (req, res) => {
             try {
                 const data = req.body;
 
@@ -1406,14 +1415,14 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/users/:userId/total-stats",verifyToken, async (req, res) => {
+        app.get("/users/:userId/total-stats", verifyToken, async (req, res) => {
             try {
                 const { userId } = req.params;
-                if(userId !== req.userInfo._id.toString()){
+                if (userId !== req.userInfo._id.toString()) {
                     console.log('milenai ')
-                     return res.status(401).send({message:'unauthorized access'})
+                    return res.status(401).send({ message: 'unauthorized access' })
                 }
-                if(userId === req.userInfo._id.toString()){
+                if (userId === req.userInfo._id.toString()) {
                     console.log('milche')
                 }
 
