@@ -199,7 +199,7 @@ async function run() {
                 });
             }
         });
-        app.patch("/classes/:id/approve", async (req, res) => {
+        app.patch("/classes/:id/approve",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -217,7 +217,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.patch("/classes/:id/reject", async (req, res) => {
+        app.patch("/classes/:id/reject",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1817,7 +1817,7 @@ async function run() {
         });
 
 
-        app.get("/trainers", async (req, res) => {
+        app.get("/trainers",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const trainers = await userCollection
                     .find({ role: "trainer" })
@@ -1836,7 +1836,7 @@ async function run() {
             }
         });
 
-        app.patch("/users/:id/remove-trainer", async (req, res) => {
+        app.patch("/users/:id/remove-trainer",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
