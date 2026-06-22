@@ -49,17 +49,6 @@ const checkBlockedUser = async (req, res, next) => {
     }
 };
 
-const verifyToken = async(req,res,next)=>{
-    console.log(req.headers.authorization)
-    if(!req.headers.authorization){
-       return res.status(401).send(
-            {
-                message:'unauthorized access'
-            }
-        )
-    }
-    next()
-}
 
 const uri = process.env.MONGODB_URI
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -88,12 +77,45 @@ async function run() {
         const bookingCollection = database.collection('bookings')
         const userCollection = database.collection('user');
         const applyAsTrainerCollection = database.collection('applyastrainer')
+        const sessionCollection = database.collection('session')
 
 
+
+
+        const verifyToken = async (req, res, next) => {
+            console.log(req.headers.authorization)
+            const headerToken = req?.headers?.authorization
+            if (!headerToken) {
+                return res.status(401).send(
+                    {
+                        message: 'unauthorized access'
+                    }
+                )
+            }
+            const token = headerToken.split(' ')[1]
+            if (!token) {
+                return res.status(401).send(
+                    {
+                        message: 'unauthorized access'
+                    }
+                )
+            }
+            console.log(token)
+            const query = {token:token}
+            const session = await sessionCollection.findOne(query)
+            console.log(session,'yes session')
+            const userId = session.userId
+            console.log(userId,'userid')
+            const userQuery = await userCollection.findOne({_id: new ObjectId(userId)})
+            console.log(userQuery,' uq')
+            const userRole = userQuery.role;
+            console.log(userRole, 'url')
+            next()
+        }
 
 
         //post class:
-        app.post("/class",verifyToken, async (req, res) => {
+        app.post("/class", verifyToken, async (req, res) => {
             try {
                 const data = req.body;
 
@@ -319,7 +341,7 @@ async function run() {
 
 
         //get class details
-        app.get("/classes/:id/details",verifyToken, async (req, res) => {
+        app.get("/classes/:id/details", verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -411,45 +433,45 @@ async function run() {
         });
 
         app.post("/users/sync", async (req, res) => {
-  try {
-    const user = req.body;
+            try {
+                const user = req.body;
 
-    if (!user?.email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email required",
-      });
-    }
+                if (!user?.email) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Email required",
+                    });
+                }
 
-    const filter = { email: user.email };
+                const filter = { email: user.email };
 
-    const updateDoc = {
-      $setOnInsert: {
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        role: "user",
-        status: "active",
-        createdAt: new Date(),
-      },
-      $set: {
-        lastLogin: new Date(),
-      },
-    };
+                const updateDoc = {
+                    $setOnInsert: {
+                        name: user.name,
+                        email: user.email,
+                        image: user.image,
+                        role: "user",
+                        status: "active",
+                        createdAt: new Date(),
+                    },
+                    $set: {
+                        lastLogin: new Date(),
+                    },
+                };
 
-    const result = await userCollection.updateOne(filter, updateDoc, {
-      upsert: true, // ⭐ MOST IMPORTANT
-    });
+                const result = await userCollection.updateOne(filter, updateDoc, {
+                    upsert: true, // ⭐ MOST IMPORTANT
+                });
 
-    res.json({
-      success: true,
-      message: "User synced successfully",
-      result,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+                res.json({
+                    success: true,
+                    message: "User synced successfully",
+                    result,
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        });
 
 
         //booked users: 
@@ -628,7 +650,7 @@ async function run() {
         });
 
         // get single forum  posts: 
-        app.get("/forum-posts/:id", async (req, res) => {
+        app.get("/forum-posts/:id",verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
