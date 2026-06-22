@@ -180,7 +180,7 @@ async function run() {
                 });
             }
         });
-        app.get("/admin/classes", async (req, res) => {
+        app.get("/admin/classes",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const classes = await classCollection
                     .find({})
@@ -464,7 +464,7 @@ async function run() {
             }
         });
         //delete class: 
-        app.delete("/classes/:id", async (req, res) => {
+        app.delete("/classes/:id",verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
