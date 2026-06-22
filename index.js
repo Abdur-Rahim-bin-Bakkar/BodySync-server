@@ -235,7 +235,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.delete("/classes/:id" ,verifyToken,verifyAdminOrTrainer, async (req, res) => {
+        app.delete("/classes/:id", verifyToken, verifyAdminOrTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -444,7 +444,7 @@ async function run() {
 
 
         //update class:
-        app.patch("/classes/:id",verifyToken,verifyTrainer, async (req, res) => {
+        app.patch("/classes/:id", verifyToken, verifyTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
                 const updateData = req.body;
@@ -573,7 +573,7 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/classes/:id/students",verifyToken,verifyTrainer, async (req, res) => {
+        app.get("/classes/:id/students", verifyToken, verifyTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -754,11 +754,11 @@ async function run() {
         });
 
         //get forum by id:
-        app.get("/forum/userId/:userId",verifyToken,verifyAdminOrTrainer, async (req, res) => {
+        app.get("/forum/userId/:userId", verifyToken, verifyAdminOrTrainer, async (req, res) => {
             try {
                 const { userId } = req.params;
                 const userInfo = req?.userInfo;
-                if(userId !== userInfo._id.toString()){
+                if (userId !== userInfo._id.toString()) {
                     return res.status(403).send({ message: "Forbidden Access" })
                 }
 
@@ -777,7 +777,7 @@ async function run() {
         });
 
         // delete forum:
-        app.delete("/forum/:id", async (req, res) => {
+        app.delete("/forum/:id", verifyToken, verifyAdminOrTrainer, async (req, res) => {
             try {
                 const id = req.params.id;
 
@@ -1448,7 +1448,7 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/users/:userId/total-stats", verifyToken,verifyTrainer, async (req, res) => {
+        app.get("/users/:userId/total-stats", verifyToken, verifyTrainer, async (req, res) => {
             try {
                 const { userId } = req.params;
                 if (userId !== req.userInfo._id.toString()) {
@@ -1483,7 +1483,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.get("/admin/overview-stats", async (req, res) => {
+        app.get("/admin/overview-stats",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 // 1. Total Users
                 const totalUsers = await userCollection.countDocuments({});
