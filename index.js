@@ -754,9 +754,13 @@ async function run() {
         });
 
         //get forum by id:
-        app.get("/forum/userId/:userId", async (req, res) => {
+        app.get("/forum/userId/:userId",verifyToken,verifyAdminOrTrainer, async (req, res) => {
             try {
                 const { userId } = req.params;
+                const userInfo = req?.userInfo;
+                if(userId !== userInfo._id.toString()){
+                    return res.status(403).send({ message: "Forbidden Access" })
+                }
 
                 const result = await forumCollection
                     .find({ userId })
@@ -1444,7 +1448,7 @@ async function run() {
         //         });
         //     }
         // });
-        app.get("/users/:userId/total-stats", verifyToken, async (req, res) => {
+        app.get("/users/:userId/total-stats", verifyToken,verifyTrainer, async (req, res) => {
             try {
                 const { userId } = req.params;
                 if (userId !== req.userInfo._id.toString()) {
