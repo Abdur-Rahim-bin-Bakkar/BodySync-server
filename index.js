@@ -1726,7 +1726,7 @@ async function run() {
         //         res.status(500).json({ message: error.message });
         //     }
         // });
-        app.get("/users", async (req, res) => {
+        app.get("/users",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const { search } = req.query;
 
@@ -1754,7 +1754,7 @@ async function run() {
             }
         });
         //block and unblock
-        app.patch("/users/:id/status", async (req, res) => {
+        app.patch("/users/:id/status",verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
                 const { status } = req.body;
@@ -1774,7 +1774,7 @@ async function run() {
             }
         });
         //make admin:
-        app.patch("/users/:id/make-admin", async (req, res) => {
+        app.patch("/users/:id/make-admin",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1795,7 +1795,7 @@ async function run() {
 
 
 
-        app.get("/transactions", async (req, res) => {
+        app.get("/transactions",verifyToken,verifyAdmin, async (req, res) => {
             try {
                 const transactions = await bookingCollection
                     .find({
