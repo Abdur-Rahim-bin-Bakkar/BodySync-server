@@ -132,6 +132,28 @@ async function run() {
             console.log(userInfo, 'uc trainer check')
             next()
         }
+        const verifyAdmin = async (req, res, next) => {
+            const userInfo = req?.userInfo;
+            const role = userInfo?.role;
+            if (role !== 'admin') {
+                return res.status(403).send({ message: "Forbidden Access" })
+            }
+            console.log(userInfo, 'uc admin check')
+            next()
+        }
+        const verifyAdminOrTrainer = async (req, res, next) => {
+            const userInfo = req?.userInfo;
+            const role = userInfo?.role;
+            if (role === 'admin') {
+                return next()
+            }
+            if (role === 'trainer') {
+               return next()
+            }
+
+            return res.status(403).send({ message: "Forbidden Access" })
+
+        }
 
 
         //post class:
@@ -700,7 +722,7 @@ async function run() {
         });
 
         // post fourm:
-        app.post("/forum", async (req, res) => {
+        app.post("/forum", verifyToken, verifyAdminOrTrainer, async (req, res) => {
             try {
                 const data = req.body;
 
