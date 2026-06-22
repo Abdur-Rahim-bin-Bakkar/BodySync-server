@@ -130,6 +130,7 @@ async function run() {
                 return res.status(403).send({ message: "Forbidden Access" })
             }
             console.log(userInfo, 'uc trainer check')
+            req.userInfo = userInfo
             next()
         }
         const verifyAdmin = async (req, res, next) => {
@@ -139,15 +140,18 @@ async function run() {
                 return res.status(403).send({ message: "Forbidden Access" })
             }
             console.log(userInfo, 'uc admin check')
+            req.userInfo = userInfo
             next()
         }
         const verifyAdminOrTrainer = async (req, res, next) => {
             const userInfo = req?.userInfo;
             const role = userInfo?.role;
             if (role === 'admin') {
+                req.userInfo = userInfo
                 return next()
             }
             if (role === 'trainer') {
+                req.userInfo = userInfo
                 return next()
             }
 
@@ -231,7 +235,7 @@ async function run() {
                 res.status(500).json({ message: error.message });
             }
         });
-        app.delete("/classes/:id", async (req, res) => {
+        app.delete("/classes/:id" ,verifyToken,verifyAdminOrTrainer, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -361,7 +365,7 @@ async function run() {
         });
 
         //get class by userId:
-        app.get("/classes/:userId", verifyToken, async (req, res) => {
+        app.get("/classes/:userId", verifyToken, verifyTrainer, async (req, res) => {
             try {
                 const userId = req.params.userId;
                 const userInfo = req.userInfo;
