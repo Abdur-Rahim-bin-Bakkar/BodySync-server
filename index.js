@@ -49,7 +49,17 @@ const checkBlockedUser = async (req, res, next) => {
     }
 };
 
-
+const verifyToken = async(req,res,next)=>{
+    console.log(req.headers.authorization)
+    if(!req.headers.authorization){
+       return res.status(401).send(
+            {
+                message:'unauthorized access'
+            }
+        )
+    }
+    next()
+}
 
 const uri = process.env.MONGODB_URI
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -83,7 +93,7 @@ async function run() {
 
 
         //post class:
-        app.post("/class", async (req, res) => {
+        app.post("/class",verifyToken, async (req, res) => {
             try {
                 const data = req.body;
 
@@ -199,13 +209,48 @@ async function run() {
         });
 
         //get all approved classes:
+        // app.get("/classes", async (req, res) => {
+        //     try {
+        //         const { search, category } = req.query;
+
+        //         let query = { status: "approved" };
+
+        //         // 🔍 SEARCH by name
+        //         if (search) {
+        //             query.className = {
+        //                 $regex: search,
+        //                 $options: "i",
+        //             };
+        //         }
+
+        //         // 🎯 FILTER by category
+        //         if (category) {
+        //             query.category = category;
+        //         }
+
+        //         const result = await classCollection.find(query).toArray();
+
+        //         res.status(200).json({
+        //             success: true,
+        //             message: "Classes fetched successfully",
+        //             data: result,
+        //         });
+
+        //     } catch (error) {
+        //         res.status(500).json({
+        //             success: false,
+        //             message: "Server error",
+        //             error: error.message,
+        //         });
+        //     }
+        // });
         app.get("/classes", async (req, res) => {
             try {
-                const { search, category } = req.query;
+                const { search, category, page = 1, limit = 6 } = req.query;
 
                 let query = { status: "approved" };
 
-                // 🔍 SEARCH by name
+                // 🔍 SEARCH
                 if (search) {
                     query.className = {
                         $regex: search,
@@ -213,17 +258,33 @@ async function run() {
                     };
                 }
 
-                // 🎯 FILTER by category
+                // 🎯 CATEGORY FILTER
                 if (category) {
                     query.category = category;
                 }
 
-                const result = await classCollection.find(query).toArray();
+                const skip = (Number(page) - 1) * Number(limit);
+
+                const total = await classCollection.countDocuments(query);
+
+                const result = await classCollection
+                    .find(query)
+                    .skip(skip)
+                    .limit(Number(limit))
+                    .toArray();
 
                 res.status(200).json({
                     success: true,
                     message: "Classes fetched successfully",
                     data: result,
+                    pagination: {
+                        total,
+                        page: Number(page),
+                        limit: Number(limit),
+                        totalPages: Math.ceil(total / limit),
+                        showingFrom: skip + 1,
+                        showingTo: skip + result.length,
+                    },
                 });
 
             } catch (error) {
@@ -258,7 +319,7 @@ async function run() {
 
 
         //get class details
-        app.get("/classes/:id/details", async (req, res) => {
+        app.get("/classes/:id/details",verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -349,10 +410,98 @@ async function run() {
             }
         });
 
+        app.post("/users/sync", async (req, res) => {
+  try {
+    const user = req.body;
+
+    if (!user?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email required",
+      });
+    }
+
+    const filter = { email: user.email };
+
+    const updateDoc = {
+      $setOnInsert: {
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        role: "user",
+        status: "active",
+        createdAt: new Date(),
+      },
+      $set: {
+        lastLogin: new Date(),
+      },
+    };
+
+    const result = await userCollection.updateOne(filter, updateDoc, {
+      upsert: true, // ⭐ MOST IMPORTANT
+    });
+
+    res.json({
+      success: true,
+      message: "User synced successfully",
+      result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
         //booked users: 
         // const { ObjectId } = require("mongodb");
 
+        // app.get("/classes/:id/students", async (req, res) => {
+        //     try {
+        //         const { id } = req.params;
+
+        //         const students = await bookingCollection.aggregate([
+        //             {
+        //                 $match: {
+        //                     classId: id // or new ObjectId(id) if stored as ObjectId
+        //                 }
+        //             },
+        //             {
+        //                 $lookup: {
+        //                     from: "user",
+        //                     localField: "userId",
+        //                     foreignField: "userId", // or "_id" depending on your user schema
+        //                     as: "userInfo"
+        //                 }
+        //             },
+        //             {
+        //                 $unwind: "$userInfo"
+        //             },
+        //             {
+        //                 $project: {
+        //                     _id: 1,
+        //                     classId: 1,
+        //                     userId: 1,
+        //                     createdAt: 1,
+        //                     "userInfo.name": 1,
+        //                     "userInfo.email": 1,
+        //                     "userInfo.image": 1
+        //                 }
+        //             }
+        //         ]).toArray();
+
+        //         return res.json({
+        //             success: true,
+        //             count: students.length,
+        //             data: students
+        //         });
+
+        //     } catch (error) {
+        //         return res.status(500).json({
+        //             success: false,
+        //             message: error.message
+        //         });
+        //     }
+        // });
         app.get("/classes/:id/students", async (req, res) => {
             try {
                 const { id } = req.params;
@@ -360,36 +509,53 @@ async function run() {
                 const students = await bookingCollection.aggregate([
                     {
                         $match: {
-                            classId: id // or new ObjectId(id) if stored as ObjectId
+                            classId: id
                         }
                     },
+
+                    // convert userId string → ObjectId
+                    {
+                        $addFields: {
+                            userObjId: {
+                                $toObjectId: "$userId"
+                            }
+                        }
+                    },
+
                     {
                         $lookup: {
                             from: "user",
-                            localField: "userId",
-                            foreignField: "userId", // or "_id" depending on your user schema
+                            localField: "userObjId",
+                            foreignField: "_id",
                             as: "userInfo"
                         }
                     },
+
                     {
-                        $unwind: "$userInfo"
+                        $unwind: {
+                            path: "$userInfo",
+                            preserveNullAndEmptyArrays: true
+                        }
                     },
+
                     {
                         $project: {
                             _id: 1,
                             classId: 1,
                             userId: 1,
                             createdAt: 1,
-                            "userInfo.name": 1,
-                            "userInfo.email": 1,
-                            "userInfo.image": 1
+
+                            user: {
+                                name: "$userInfo.name",
+                                email: "$userInfo.email",
+                                image: "$userInfo.image"
+                            }
                         }
                     }
                 ]).toArray();
 
                 return res.json({
                     success: true,
-                    count: students.length,
                     data: students
                 });
 
