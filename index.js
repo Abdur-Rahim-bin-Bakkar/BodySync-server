@@ -417,7 +417,7 @@ async function run() {
             }
         });
 
-        app.patch("/classes/:id/increment-booking", async (req, res) => {
+        app.patch("/classes/:id/increment-booking",verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -1331,7 +1331,7 @@ async function run() {
 
         //counts--------------------------------
         //count booking 
-        app.get("/users/:userId/stats", async (req, res) => {
+        app.get("/users/:userId/stats",verifyToken, async (req, res) => {
             try {
                 const { userId } = req.params;
 
